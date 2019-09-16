@@ -10,6 +10,8 @@ class PriceScreen extends StatefulWidget {
 
 class _PriceScreenState extends State<PriceScreen> {
   String selectedCurrency = 'USD';
+  String selectedCrypto = 'BTC';
+  String bitcoinValue = '?';
 
   DropdownButton<String> androidDropdown() {
     List<DropdownMenuItem<String>> dropdownItems = [];
@@ -27,6 +29,7 @@ class _PriceScreenState extends State<PriceScreen> {
       onChanged: (value) {
         setState(() {
           selectedCurrency = value;
+          getData();
         });
       },
     );
@@ -42,18 +45,49 @@ class _PriceScreenState extends State<PriceScreen> {
       backgroundColor: Colors.lightBlue,
       itemExtent: 32.0,
       onSelectedItemChanged: (selectedIndex) {
-        print(selectedIndex);
+        selectedCurrency = currenciesList[selectedIndex];
+        getData();
       },
       children: pickerItems,
     );
   }
 
-  //TODO: Create a method here called getData() to get the coin data from coin_data.dart
+  void getData() async {
+    try {
+      List bitcoinData =
+          await CoinData().getCoinData(currency: selectedCurrency);
+      setState(() {
+        for (int i = 0; i < bitcoinData.length; i++) {
+          bitcoinValue = bitcoinData[i].toStringAsFixed(0);
+        }
+      });
+    } catch (e) {
+      print(e);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    //TODO: Call getData() when the screen loads up.
+    getData();
+  }
+
+  List<CryptoCard> makeCards() {
+    int len = cryptoList.length;
+    List<CryptoCard> cards = [];
+
+    for (int i = 0; i < len; i++) {
+      cards.add(
+        CryptoCard(
+          bitcoinValueInUSD: bitcoinValue,
+          selectedCurrency: selectedCurrency,
+          selectedCrypto: cryptoList[i],
+        ),
+      );
+      selectedCrypto = cryptoList[i];
+      getData();
+    }
+    return cards;
   }
 
   @override
@@ -66,27 +100,9 @@ class _PriceScreenState extends State<PriceScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Padding(
-            padding: EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
-            child: Card(
-              color: Colors.lightBlueAccent,
-              elevation: 5.0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
-                child: Text(
-                  //TODO: Update the Text Widget with the live bitcoin data here.
-                  '1 BTC = ? USD',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: makeCards(),
           ),
           Container(
             height: 150.0,
@@ -96,6 +112,43 @@ class _PriceScreenState extends State<PriceScreen> {
             child: Platform.isIOS ? iOSPicker() : androidDropdown(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class CryptoCard extends StatelessWidget {
+  const CryptoCard({
+    @required this.bitcoinValueInUSD,
+    @required this.selectedCurrency,
+    @required this.selectedCrypto,
+  });
+
+  final String bitcoinValueInUSD;
+  final String selectedCurrency;
+  final String selectedCrypto;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
+      child: Card(
+        color: Colors.lightBlueAccent,
+        elevation: 5.0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
+          child: Text(
+            '1 $selectedCrypto = $bitcoinValueInUSD $selectedCurrency',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 20.0,
+              color: Colors.white,
+            ),
+          ),
+        ),
       ),
     );
   }
